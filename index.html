@@ -14,8 +14,7 @@
         .auth-card { max-width: 400px; margin: 50px auto; text-align: center; border-top: 5px solid var(--blue); }
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         .btn-main { background: var(--blue); color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; }
-        .msg { font-size: 13px; margin: 10px 0; padding: 8px; border-radius: 4px; display: none; }
-
+        
         .result-header { color: #004085; text-align: center; font-size: 24px; margin-bottom: 20px; font-weight: bold; border-bottom: 2px solid #eee; padding-bottom: 10px;}
         .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
         .card { padding: 12px; border: 1px solid #ddd; background: #fff; border-radius: 8px; font-size: 14px; }
@@ -95,7 +94,7 @@
             <div class="card c-green">
                 <h4>তারিখ, ভাষা, সময়</h4>
                 <p><span>🗓️ তারিখ:</span> <span id="r-date"></span></p>
-                <p><span>👤 ভাষা:</span> <span id="r-lang">English</span></p>
+                <p><span>👤 ভাষা:</span> <span id="r-lang">--</span></p>
                 <p><span>⏱️ মোট সময়:</span> <span id="r-total-time-label"></span></p>
                 <p><span>⏳ ব্যয়িত সময়:</span> <span id="r-time-taken"></span></p>
             </div>
@@ -167,6 +166,7 @@
     document.getElementById('p-text').innerText = passage;
     updateTimerDisplay();
 
+    // -- Your Auth functions stay same as provided --
     function updateTimerDisplay() {
         let m = Math.floor(timeLeft/60), s = timeLeft%60;
         document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -182,35 +182,21 @@
         const u = document.getElementById('sign-user').value.toLowerCase().trim();
         const p = document.getElementById('sign-pass').value;
         const btn = document.getElementById('send-code-btn');
-
         if(!u.endsWith("@gmail.com")) return alert("শুধুমাত্র Gmail ব্যবহার করুন!");
         if(n === "" || p.length < 6) return alert("সব ঘর সঠিক তথ্য দিয়ে পূরণ করুন!");
-
         generatedCode = Math.floor(1000 + Math.random() * 9000);
         tempUser = {name: n, user: u, pass: p};
         btn.innerText = "পাঠানো হচ্ছে..."; btn.disabled = true;
-
-        emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
-            to_email: u, to_name: n, code: generatedCode
-        }).then(() => {
-            alert("আপনার জিমেইলে কোড পাঠানো হয়েছে। " + generatedCode);
-            document.getElementById('sign-inputs').classList.add('hidden');
-            document.getElementById('verify-div').classList.remove('hidden');
-        }, (err) => {
-            alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode);
-            document.getElementById('sign-inputs').classList.add('hidden');
-            document.getElementById('verify-div').classList.remove('hidden');
-        });
+        emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {to_email: u, to_name: n, code: generatedCode})
+        .then(() => { alert("আপনার জিমেইলে কোড পাঠানো হয়েছে। " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); }, 
+        (err) => { alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); });
     }
 
     function doLogin() {
         const u = document.getElementById('login-user').value.toLowerCase().trim();
         const p = document.getElementById('login-pass').value;
         const found = users.find(x => x.user === u && x.pass === p);
-        if(found) {
-            document.getElementById('display-name').innerText = found.name;
-            showPage('page-exam');
-        } else alert("ভুল তথ্য!");
+        if(found) { document.getElementById('display-name').innerText = found.name; showPage('page-exam'); } else alert("ভুল তথ্য!");
     }
 
     function verifyAndFinish() {
@@ -219,16 +205,14 @@
             let exp = new Date(); exp.setDate(exp.getDate() + 30);
             users.push({...tempUser, expiry: exp.getTime()});
             localStorage.setItem('bcc_final_users', JSON.stringify(users));
-            alert("রেজিস্ট্রেশন সফল!");
-            location.reload();
+            alert("রেজিস্ট্রেশন সফল!"); location.reload();
         } else alert("ভুল কোড!");
     }
 
     function doRecover() {
         const email = document.getElementById('recover-email').value.toLowerCase().trim();
         const found = users.find(x => x.user === email);
-        if(found) alert("আপনার পাসওয়ার্ড: " + found.pass);
-        else alert("ইমেইল পাওয়া যায়নি!");
+        if(found) alert("আপনার পাসওয়ার্ড: " + found.pass); else alert("ইমেইল পাওয়া যায়নি!");
     }
 
     function checkAdminAccess() {
@@ -236,8 +220,7 @@
             document.getElementById('adm-text').value = passage;
             document.getElementById('adm-time').value = examDuration;
             document.getElementById('adm-min-wpm').value = minWPM;
-            renderAdminTable();
-            showPage('page-admin');
+            renderAdminTable(); showPage('page-admin');
         } else alert("ভুল এডমিন পাসওয়ার্ড!");
     }
 
@@ -282,13 +265,18 @@
         const timeSpentSeconds = examDuration - timeLeft;
         const elapsedMins = Math.max(timeSpentSeconds / 60, 0.01);
         
-        // ৫ স্টক (Stroke) = ১ শব্দ লজিক
+        // ৫ স্টক = ১ শব্দ হিসেবে WPM গণনা
         const wpm = ((inp.length / 5) / elapsedMins).toFixed(2);
         const accuracy = inp.length > 0 ? Math.round((correctChars / inp.length) * 100) : 0;
-        
-        // পাস-ফেল লজিক (অ্যাডমিন প্যানেল থেকে সেট করা WPM অনুযায়ী)
+        const errorRate = 100 - accuracy;
+
+        // ভাষা শনাক্তকরণ (বাংলা কি না)
+        const isBangla = /[\u0980-\u09FF]/.test(passage);
+        document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
+
+        // পাস/ফেল শর্ত: WPM টার্গেট পূরণ এবং ভুল ৫% বা তার কম
         const statusTag = document.getElementById('r-status');
-        if(parseFloat(wpm) >= minWPM) {
+        if(parseFloat(wpm) >= minWPM && errorRate <= 5) {
             statusTag.innerText = "PASS";
             statusTag.style.color = "var(--green)";
         } else {
@@ -301,25 +289,20 @@
         document.getElementById('r-time-taken').innerText = `${Math.floor(timeSpentSeconds/60)}:${(timeSpentSeconds%60).toString().padStart(2,'0')}`;
         document.getElementById('r-wpm').innerText = wpm;
         document.getElementById('r-acc').innerText = (accuracy > 100 ? 100 : accuracy) + "%";
-        document.getElementById('r-words').innerText = Math.floor(inp.length / 5); // ৫ স্ট্রোকে ১ শব্দ
+        document.getElementById('r-words').innerText = Math.floor(inp.length / 5);
         document.getElementById('r-char').innerText = inp.length;
         document.getElementById('r-cor').innerText = correctChars;
         document.getElementById('r-wrong').innerText = wrongWordsCount;
-        document.getElementById('r-err').innerText = (100 - accuracy < 0 ? 0 : 100 - accuracy) + "%";
+        document.getElementById('r-err').innerText = (errorRate < 0 ? 0 : errorRate) + "%";
         document.getElementById('user-compare-text').innerHTML = comparisonHTML;
         document.getElementById('original-text-result').innerText = passage;
         showPage('page-result');
     }
 
     function saveAdminSettings() {
-        const newTime = document.getElementById('adm-time').value;
-        const newMinWpm = document.getElementById('adm-min-wpm').value;
-        const newText = document.getElementById('adm-text').value;
-
-        localStorage.setItem('bcc_exam_time', newTime);
-        localStorage.setItem('bcc_min_wpm', newMinWpm);
-        localStorage.setItem('bcc_final_text', newText);
-        
+        localStorage.setItem('bcc_exam_time', document.getElementById('adm-time').value);
+        localStorage.setItem('bcc_min_wpm', document.getElementById('adm-min-wpm').value);
+        localStorage.setItem('bcc_final_text', document.getElementById('adm-text').value);
         alert("সেটিংস সফলভাবে সেভ হয়েছে!");
         location.reload();
     }
