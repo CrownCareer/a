@@ -156,7 +156,7 @@
     (function() { emailjs.init("YOUR_PUBLIC_KEY"); })();
 
     let users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
-    let passage = localStorage.getItem('bcc_final_text') || "The quick brown fox jumps over the lazy dog.";
+    let passage = localStorage.getItem('bcc_final_text') || "প্যাসেজ এখানে যুক্ত করুন।";
     let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 300; 
     let minWPM = parseInt(localStorage.getItem('bcc_min_wpm')) || 20;
     
@@ -197,7 +197,7 @@
         const found = users.find(x => x.user === u && x.pass === p);
         if(found) { 
             document.getElementById('display-name').innerText = found.name; 
-            document.getElementById('t-input').value = ""; // ক্লিয়ার করা
+            document.getElementById('t-input').value = ""; 
             showPage('page-exam'); 
         } else alert("ভুল তথ্য!");
     }
@@ -252,12 +252,12 @@
         const inpBox = document.getElementById('t-input');
         const rawInput = inpBox.value;
         
-        // Unicode Normalization (বাংলা ভুলের সমাধান)
-        const normalizedInp = rawInput.trim().normalize('NFC');
-        const normalizedPassage = passage.trim().normalize('NFC');
+        // ১. বাংলা অক্ষরের সমাধান (Normalization)
+        const normalizedInp = rawInput.normalize('NFC');
+        const normalizedPassage = passage.normalize('NFC');
 
-        const pWords = normalizedPassage.split(/\s+/);
-        const iWords = normalizedInp.split(/\s+/);
+        const pWords = normalizedPassage.trim().split(/\s+/);
+        const iWords = normalizedInp.trim().split(/\s+/);
         let correctChars = 0, wrongWordsCount = 0, comparisonHTML = "";
         
         pWords.forEach((word, idx) => {
@@ -271,20 +271,20 @@
             }
         });
 
+        // ২. ৫ মিনিট (বা মোট সময়) দিয়ে WPM ভাগ হবে
         const timeSpentSeconds = examDuration - timeLeft;
-        const totalMins = examDuration / 60; // ৫ মিনিট বা ১০ মিনিট যা সেট করা আছে
+        const totalMins = examDuration / 60; 
         
-        // ৫ স্টক = ১ শব্দ হিসেবে WPM গণনা
         const wpm = ((rawInput.length / 5) / totalMins).toFixed(2);
-        const accuracy = rawInput.length > 0 ? Math.round((correctChars / rawInput.length) * 100) : 0;
-        const errorRate = 100 - accuracy;
+        const accuracy = rawInput.length > 0 ? (correctChars / rawInput.length) * 100 : 0;
+        const errorRate = (100 - accuracy).toFixed(2); // ৩. নিখুঁত ভুলের হার
 
         const isBangla = /[\u0980-\u09FF]/.test(passage);
         document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
 
-        // পাস/ফেল শর্ত
+        // ৪. পাস/ফেল লজিক (WPM এবং ৫.০০% এর বেশি ভুল হলে ফেল)
         const statusTag = document.getElementById('r-status');
-        if(parseFloat(wpm) >= minWPM && errorRate <= 5) {
+        if(parseFloat(wpm) >= minWPM && parseFloat(errorRate) <= 5.00) {
             statusTag.innerText = "PASS";
             statusTag.style.color = "var(--green)";
         } else {
@@ -292,23 +292,24 @@
             statusTag.style.color = "var(--red)";
         }
 
+        // ফলাফল বক্সে পাঠানো
         document.getElementById('r-total-time-label').innerText = (examDuration/60) + " মিনিট";
         document.getElementById('r-date').innerText = new Date().toLocaleDateString();
         document.getElementById('r-time-taken').innerText = `${Math.floor(timeSpentSeconds/60)}:${(timeSpentSeconds%60).toString().padStart(2,'0')}`;
         document.getElementById('r-wpm').innerText = wpm;
-        document.getElementById('r-acc').innerText = (accuracy > 100 ? 100 : accuracy) + "%";
+        document.getElementById('r-acc').innerText = (accuracy > 100 ? 100 : accuracy.toFixed(2)) + "%";
         document.getElementById('r-words').innerText = Math.floor(rawInput.length / 5);
         document.getElementById('r-char').innerText = rawInput.length;
         document.getElementById('r-cor').innerText = correctChars;
         document.getElementById('r-wrong').innerText = wrongWordsCount;
-        document.getElementById('r-err').innerText = (errorRate < 0 ? 0 : errorRate) + "%";
+        document.getElementById('r-err').innerText = errorRate + "%";
         document.getElementById('user-compare-text').innerHTML = comparisonHTML;
         document.getElementById('original-text-result').innerText = passage;
         showPage('page-result');
     }
 
     function resetForNewExam() {
-        document.getElementById('t-input').value = ""; 
+        document.getElementById('t-input').value = ""; // ইনপুট বক্স পরিষ্কার করা
         location.reload();
     }
 
