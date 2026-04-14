@@ -48,6 +48,13 @@
         <hr><button onclick="showPage('page-admin-auth')" style="background:none; border:none; color:silver; cursor:pointer; font-size:10px;">Admin</button>
     </div>
 
+    <div id="page-recover" class="box auth-card hidden">
+        <h2 style="color: var(--blue);">পাসওয়ার্ড উদ্ধার</h2>
+        <input type="text" id="recover-email" placeholder="আপনার নিবন্ধিত Gmail দিন">
+        <button class="btn-main" onclick="doRecover()">পাসওয়ার্ড দেখুন</button>
+        <button onclick="showPage('page-login')" style="margin-top:10px; border:none; background:none; color:gray; cursor:pointer;">লগইন পেজে ফিরুন</button>
+    </div>
+
     <div id="page-signup" class="box auth-card hidden">
         <h2 style="color: var(--green);">রেজিস্ট্রেশন</h2>
         <div id="sign-inputs">
@@ -57,10 +64,18 @@
             <button class="btn-main" id="send-code-btn" style="background: var(--green);" onclick="doSignup()">ভেরিফিকেশন কোড পাঠান</button>
         </div>
         <div id="verify-div" class="hidden">
+            <p style="font-size:12px; color:var(--blue);">আপনার জিমেইলে ৪ ডিজিটের কোড পাঠানো হয়েছে।</p>
             <input type="text" id="verify-code" placeholder="৪ ডিজিটের কোডটি দিন">
-            <button class="btn-main" onclick="verifyAndFinish()">ভেরিফাই</button>
+            <button class="btn-main" style="background: var(--teal);" onclick="verifyAndFinish()">ভেরিফাই ও সাইন আপ</button>
         </div>
         <p><a href="#" onclick="showPage('page-login')">লগইন করুন</a></p>
+    </div>
+
+    <div id="page-admin-auth" class="box auth-card hidden">
+        <h2 style="color: var(--blue);">Admin Login</h2>
+        <input type="password" id="admin-entry-pass" placeholder="এডমিন পাসওয়ার্ড দিন">
+        <button class="btn-main" onclick="checkAdminAccess()">প্রবেশ করুন</button>
+        <button onclick="showPage('page-login')" style="margin-top:10px; background:none; border:none; color:gray; cursor:pointer;">ফিরে যান</button>
     </div>
 
     <div id="page-exam" class="hidden">
@@ -69,18 +84,14 @@
             <div style="color: var(--red); font-size: 20px; font-weight: bold;">সময়: <span id="timer">00:00</span></div>
         </div>
         <div id="passage-stable" class="box"><div id="p-text"></div></div>
-        <div class="input-box">
-            <textarea id="t-input" placeholder="টাইপ করুন..." oninput="startCount()" onpaste="return false;"></textarea>
-        </div>
-        <div style="text-align: right; margin-top: 15px;">
-            <button class="btn-main" style="width: auto; background: var(--green); padding: 10px 40px;" onclick="finishExam()">Go to Finish</button>
-        </div>
+        <div class="input-box"><textarea id="t-input" placeholder="টাইপ করুন..." oninput="startCount()" onpaste="return false;"></textarea></div>
+        <div style="text-align: right; margin-top: 15px;"><button class="btn-main" style="width: auto; background: var(--green); padding: 10px 40px;" onclick="finishExam()">Go to Finish</button></div>
     </div>
 
     <div id="page-result" class="box hidden">
-        <div class="result-header">🔍 টাইপিং ফলাফল</div>
-        <div class="result-grid" id="result-content">
-             <div class="card c-green">
+        <div class="result-header">🔍 টাইপিং ফলাফল ও বিস্তারিত</div>
+        <div class="result-grid">
+            <div class="card c-green">
                 <h4>তারিখ, ভাষা, সময়</h4>
                 <p><span>🗓️ তারিখ:</span> <span id="r-date"></span></p>
                 <p><span>👤 ভাষা:</span> <span id="r-lang">--</span></p>
@@ -103,25 +114,126 @@
             </div>
         </div>
         <div class="status-banner">🌟 ফলাফল: <div class="status-tag" id="r-status">--</div></div>
-        <div id="user-compare-text" style="padding:15px; border:1px solid #ddd; background:#f9f9f9; line-height:1.8; font-size:18px; border-radius:5px; margin-bottom:15px;"></div>
-        <center><button class="btn-main" style="width: 200px;" onclick="resetForNewExam()">আবার চেষ্টা করুন</button></center>
+        <div style="margin-top:20px;">
+            <div style="font-weight:bold; margin-bottom:5px;">Writing Part (আপনার):</div>
+            <div id="user-compare-text" style="padding:15px; border:1px solid #ddd; background:#f9f9f9; line-height:1.8; font-size:18px; border-radius:5px; margin-bottom:15px;"></div>
+            <div style="font-weight:bold; margin-bottom:5px;">মূল Passage:</div>
+            <div id="original-text-result" style="padding:15px; border:1px solid #ddd; background:#fff; line-height:1.8; font-size:18px; border-radius:5px; color:#444;"></div>
+        </div>
+        <center><button class="btn-main" style="width: 200px; margin-top:20px;" onclick="resetForNewExam()">আবার চেষ্টা করুন</button></center>
     </div>
 
+    <div id="page-admin" class="box hidden">
+        <h2 style="color:var(--blue)">Admin Panel</h2>
+        <div class="box">
+            <h4>সেটিংস ও প্যাসেজ:</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>পরীক্ষার সময়:</label>
+                    <select id="adm-time">
+                        <option value="300">৫ মিনিট</option>
+                        <option value="600">১০ মিনিট</option>
+                    </select>
+                </div>
+                <div>
+                    <label>পাস করার WPM (নূন্যতম):</label>
+                    <input type="number" id="adm-min-wpm" placeholder="উদা: ২০">
+                </div>
+            </div>
+            <label>প্যাসেজ এডিট:</label>
+            <textarea id="adm-text" style="height: 100px; width:100%; border:1px solid #ddd;"></textarea><br>
+            <button class="btn-main" style="width: auto;" onclick="saveAdminSettings()">Save All Settings</button>
+        </div>
+        <table>
+            <thead><tr><th>নাম</th><th>ইউজার</th><th>পাসওয়ার্ড</th><th>মেয়াদ</th><th>স্ট্যাটাস</th></tr></thead>
+            <tbody id="adm-table"></tbody>
+        </table>
+        <button class="btn-main" style="background:#666; margin-top:20px; width:auto" onclick="location.reload()">Logout Admin</button>
     </div>
+</div>
 
 <script>
     (function() { emailjs.init("YOUR_PUBLIC_KEY"); })();
+
     let users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
-    let passage = localStorage.getItem('bcc_final_text') || "প্যাসেজ এখানে লিখুন।";
+    let passage = localStorage.getItem('bcc_final_text') || "The quick brown fox jumps over the lazy dog.";
     let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 300; 
     let minWPM = parseInt(localStorage.getItem('bcc_min_wpm')) || 20;
-    let timeLeft = examDuration, timerOn = false, timerInt;
-
+    
+    let adminPass = "admin123";
+    let timeLeft = examDuration, timerOn = false, timerInt, generatedCode, tempUser;
+    
     document.getElementById('p-text').innerText = passage;
+    updateTimerDisplay();
+
+    function updateTimerDisplay() {
+        let m = Math.floor(timeLeft/60), s = timeLeft%60;
+        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
 
     function showPage(id) {
         document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+    }
+
+    function doSignup() {
+        const n = document.getElementById('sign-name').value;
+        const u = document.getElementById('sign-user').value.toLowerCase().trim();
+        const p = document.getElementById('sign-pass').value;
+        const btn = document.getElementById('send-code-btn');
+        if(!u.endsWith("@gmail.com")) return alert("শুধুমাত্র Gmail ব্যবহার করুন!");
+        if(n === "" || p.length < 6) return alert("সব ঘর সঠিক তথ্য দিয়ে পূরণ করুন!");
+        generatedCode = Math.floor(1000 + Math.random() * 9000);
+        tempUser = {name: n, user: u, pass: p};
+        btn.innerText = "পাঠানো হচ্ছে..."; btn.disabled = true;
+        emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {to_email: u, to_name: n, code: generatedCode})
+        .then(() => { alert("আপনার জিমেইলে কোড পাঠানো হয়েছে। " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); }, 
+        (err) => { alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); });
+    }
+
+    function doLogin() {
+        const u = document.getElementById('login-user').value.toLowerCase().trim();
+        const p = document.getElementById('login-pass').value;
+        const found = users.find(x => x.user === u && x.pass === p);
+        if(found) { 
+            document.getElementById('display-name').innerText = found.name; 
+            document.getElementById('t-input').value = ""; // ক্লিয়ার করা
+            showPage('page-exam'); 
+        } else alert("ভুল তথ্য!");
+    }
+
+    function verifyAndFinish() {
+        const code = document.getElementById('verify-code').value;
+        if(code === generatedCode.toString()) {
+            let exp = new Date(); exp.setDate(exp.getDate() + 30);
+            users.push({...tempUser, expiry: exp.getTime()});
+            localStorage.setItem('bcc_final_users', JSON.stringify(users));
+            alert("রেজিস্ট্রেশন সফল!"); location.reload();
+        } else alert("ভুল কোড!");
+    }
+
+    function doRecover() {
+        const email = document.getElementById('recover-email').value.toLowerCase().trim();
+        const found = users.find(x => x.user === email);
+        if(found) alert("আপনার পাসওয়ার্ড: " + found.pass); else alert("ইমেইল পাওয়া যায়নি!");
+    }
+
+    function checkAdminAccess() {
+        if(document.getElementById('admin-entry-pass').value === adminPass) {
+            document.getElementById('adm-text').value = passage;
+            document.getElementById('adm-time').value = examDuration;
+            document.getElementById('adm-min-wpm').value = minWPM;
+            renderAdminTable(); showPage('page-admin');
+        } else alert("ভুল এডমিন পাসওয়ার্ড!");
+    }
+
+    function renderAdminTable() {
+        const tbody = document.getElementById('adm-table');
+        tbody.innerHTML = "";
+        users.forEach(u => {
+            const status = new Date().getTime() > u.expiry ? "<span style='color:red'>Expired</span>" : "<span style='color:green'>Active</span>";
+            tbody.innerHTML += `<tr><td>${u.name}</td><td>${u.user}</td><td>${u.pass}</td><td>${new Date(u.expiry).toLocaleDateString()}</td><td>${status}</td></tr>`;
+        });
     }
 
     function startCount() {
@@ -135,23 +247,17 @@
         }
     }
 
-    function updateTimerDisplay() {
-        let m = Math.floor(timeLeft/60), s = timeLeft%60;
-        document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
     function finishExam() {
         clearInterval(timerInt);
-        const inputField = document.getElementById('t-input');
-        const rawInput = inputField.value;
+        const inpBox = document.getElementById('t-input');
+        const rawInput = inpBox.value;
         
-        // ১. বাংলা অক্ষরের ভুল সমাধান (Normalization)
+        // Unicode Normalization (বাংলা ভুলের সমাধান)
         const normalizedInp = rawInput.trim().normalize('NFC');
         const normalizedPassage = passage.trim().normalize('NFC');
 
         const pWords = normalizedPassage.split(/\s+/);
         const iWords = normalizedInp.split(/\s+/);
-        
         let correctChars = 0, wrongWordsCount = 0, comparisonHTML = "";
         
         pWords.forEach((word, idx) => {
@@ -165,17 +271,18 @@
             }
         });
 
-        // ২. ৫ মিনিট বা মোট সময় অনুযায়ী WPM গণনা
-        const totalMins = examDuration / 60; 
+        const timeSpentSeconds = examDuration - timeLeft;
+        const totalMins = examDuration / 60; // ৫ মিনিট বা ১০ মিনিট যা সেট করা আছে
+        
+        // ৫ স্টক = ১ শব্দ হিসেবে WPM গণনা
         const wpm = ((rawInput.length / 5) / totalMins).toFixed(2);
         const accuracy = rawInput.length > 0 ? Math.round((correctChars / rawInput.length) * 100) : 0;
         const errorRate = 100 - accuracy;
 
-        // ৩. ভাষা শনাক্তকরণ
         const isBangla = /[\u0980-\u09FF]/.test(passage);
         document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
 
-        // ৪. পাস/ফেল লজিক (WPM এবং ৫% ভুল)
+        // পাস/ফেল শর্ত
         const statusTag = document.getElementById('r-status');
         if(parseFloat(wpm) >= minWPM && errorRate <= 5) {
             statusTag.innerText = "PASS";
@@ -185,34 +292,32 @@
             statusTag.style.color = "var(--red)";
         }
 
-        // ফলাফল প্রদর্শন
+        document.getElementById('r-total-time-label').innerText = (examDuration/60) + " মিনিট";
         document.getElementById('r-date').innerText = new Date().toLocaleDateString();
+        document.getElementById('r-time-taken').innerText = `${Math.floor(timeSpentSeconds/60)}:${(timeSpentSeconds%60).toString().padStart(2,'0')}`;
         document.getElementById('r-wpm').innerText = wpm;
-        document.getElementById('r-acc').innerText = accuracy + "%";
+        document.getElementById('r-acc').innerText = (accuracy > 100 ? 100 : accuracy) + "%";
         document.getElementById('r-words').innerText = Math.floor(rawInput.length / 5);
+        document.getElementById('r-char').innerText = rawInput.length;
+        document.getElementById('r-cor').innerText = correctChars;
+        document.getElementById('r-wrong').innerText = wrongWordsCount;
         document.getElementById('r-err').innerText = (errorRate < 0 ? 0 : errorRate) + "%";
         document.getElementById('user-compare-text').innerHTML = comparisonHTML;
-        
+        document.getElementById('original-text-result').innerText = passage;
         showPage('page-result');
     }
 
-    // ৫. নতুন পরীক্ষার জন্য ইনপুট বক্স পরিষ্কার করা
     function resetForNewExam() {
-        document.getElementById('t-input').value = ""; // ইনপুট বক্স খালি করা
-        location.reload(); // পেজ রিফ্রেশ
+        document.getElementById('t-input').value = ""; 
+        location.reload();
     }
 
-    // (বাকী লগইন/সাইনআপ ফাংশনগুলো আপনার আগের কোড থেকে এখানে থাকবে)
-    function doLogin() {
-        const u = document.getElementById('login-user').value.toLowerCase().trim();
-        const p = document.getElementById('login-pass').value;
-        const found = users.find(x => x.user === u && x.pass === p);
-        if(found) { 
-            document.getElementById('display-name').innerText = found.name; 
-            document.getElementById('t-input').value = ""; // লগইন করার সময়ও টেক্সটবক্স খালি করা নিশ্চিত করা
-            showPage('page-exam'); 
-        } 
-        else alert("ভুল তথ্য!");
+    function saveAdminSettings() {
+        localStorage.setItem('bcc_exam_time', document.getElementById('adm-time').value);
+        localStorage.setItem('bcc_min_wpm', document.getElementById('adm-min-wpm').value);
+        localStorage.setItem('bcc_final_text', document.getElementById('adm-text').value);
+        alert("সেটিংস সফলভাবে সেভ হয়েছে!");
+        location.reload();
     }
 </script>
 </body>
