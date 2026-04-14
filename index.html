@@ -33,8 +33,6 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         .error-highlight { background-color: #ffcccc; color: #cc0000; text-decoration: underline; }
-        
-        /* Expiry Input Style */
         .expiry-edit { width: 130px !important; padding: 5px !important; margin: 0 !important; font-size: 11px; }
     </style>
 </head>
@@ -160,7 +158,7 @@
     (function() { emailjs.init("YOUR_PUBLIC_KEY"); })();
 
     let users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
-    let passage = localStorage.getItem('bcc_final_text') || "The quick brown fox jumps over the lazy dog.";
+    let passage = localStorage.getItem('bcc_final_text') || "প্যাসেজ এখানে যুক্ত করুন।";
     let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 300; 
     let minWPM = parseInt(localStorage.getItem('bcc_min_wpm')) || 20;
     
@@ -195,13 +193,14 @@
         (err) => { alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); });
     }
 
+    // ফিক্সড লগইন ফাংশন
     function doLogin() {
+        users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
         const u = document.getElementById('login-user').value.toLowerCase().trim();
         const p = document.getElementById('login-pass').value;
         const found = users.find(x => x.user === u && x.pass === p);
         if(found) { 
-            // মেয়াদ চেক
-            if(new Date().getTime() > found.expiry) return alert("আপনার অ্যাকাউন্টের মেয়াদ শেষ হয়েছে! এডমিনের সাথে যোগাযোগ করুন।");
+            if(new Date().getTime() > found.expiry) return alert("আপনার অ্যাকাউন্টের মেয়াদ শেষ হয়েছে! এডমিনের সাথে যোগাযোগ করুন।");
             document.getElementById('display-name').innerText = found.name; 
             document.getElementById('t-input').value = ""; 
             showPage('page-exam'); 
@@ -239,14 +238,7 @@
         users.forEach((u, index) => {
             const status = new Date().getTime() > u.expiry ? "<span style='color:red'>Expired</span>" : "<span style='color:green'>Active</span>";
             const dateStr = new Date(u.expiry).toISOString().split('T')[0];
-            
-            tbody.innerHTML += `<tr>
-                <td>${u.name}</td>
-                <td>${u.user}</td>
-                <td>${u.pass}</td>
-                <td><input type="date" value="${dateStr}" class="expiry-edit" onchange="updateExpiry(${index}, this.value)"></td>
-                <td>${status}</td>
-            </tr>`;
+            tbody.innerHTML += `<tr><td>${u.name}</td><td>${u.user}</td><td>${u.pass}</td><td><input type="date" value="${dateStr}" class="expiry-edit" onchange="updateExpiry(${index}, this.value)"></td><td>${status}</td></tr>`;
         });
     }
 
@@ -254,7 +246,7 @@
         if(newVal) {
             users[index].expiry = new Date(newVal).getTime();
             localStorage.setItem('bcc_final_users', JSON.stringify(users));
-            renderAdminTable(); // রিফ্রেশ টেবিল
+            renderAdminTable(); 
         }
     }
 
@@ -273,14 +265,11 @@
         clearInterval(timerInt);
         const inpBox = document.getElementById('t-input');
         const rawInput = inpBox.value;
-        
         const normalizedInp = rawInput.normalize('NFC');
         const normalizedPassage = passage.normalize('NFC');
-
         const pWords = normalizedPassage.trim().split(/\s+/);
         const iWords = normalizedInp.trim().split(/\s+/);
         let correctChars = 0, wrongWordsCount = 0, comparisonHTML = "";
-        
         pWords.forEach((word, idx) => {
             const userWord = iWords[idx] || "";
             if (userWord === word && word !== "") {
@@ -291,17 +280,13 @@
                 comparisonHTML += `<span class="error-highlight">${userWord}</span> `;
             }
         });
-
         const timeSpentSeconds = examDuration - timeLeft;
         const totalMins = examDuration / 60; 
-        
         const wpm = ((rawInput.length / 5) / totalMins).toFixed(2);
         const accuracy = rawInput.length > 0 ? (correctChars / rawInput.length) * 100 : 0;
         const errorRate = (100 - accuracy).toFixed(2);
-
         const isBangla = /[\u0980-\u09FF]/.test(passage);
         document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
-
         const statusTag = document.getElementById('r-status');
         if(parseFloat(wpm) >= minWPM && parseFloat(errorRate) <= 5.00) {
             statusTag.innerText = "PASS";
@@ -310,7 +295,6 @@
             statusTag.innerText = "FAIL";
             statusTag.style.color = "var(--red)";
         }
-
         document.getElementById('r-total-time-label').innerText = (examDuration/60) + " মিনিট";
         document.getElementById('r-date').innerText = new Date().toLocaleDateString();
         document.getElementById('r-time-taken').innerText = `${Math.floor(timeSpentSeconds/60)}:${(timeSpentSeconds%60).toString().padStart(2,'0')}`;
