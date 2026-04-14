@@ -157,7 +157,7 @@
 
     let users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
     let passage = localStorage.getItem('bcc_final_text') || "The quick brown fox jumps over the lazy dog.";
-    let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 600; 
+    let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 300; 
     let minWPM = parseInt(localStorage.getItem('bcc_min_wpm')) || 20;
     
     let adminPass = "admin123";
@@ -166,7 +166,6 @@
     document.getElementById('p-text').innerText = passage;
     updateTimerDisplay();
 
-    // -- Your Auth functions stay same as provided --
     function updateTimerDisplay() {
         let m = Math.floor(timeLeft/60), s = timeLeft%60;
         document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -188,15 +187,24 @@
         tempUser = {name: n, user: u, pass: p};
         btn.innerText = "পাঠানো হচ্ছে..."; btn.disabled = true;
         emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {to_email: u, to_name: n, code: generatedCode})
-        .then(() => { alert("আপনার জিমেইলে কোড পাঠানো হয়েছে। " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); }, 
-        (err) => { alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode); document.getElementById('sign-inputs').classList.add('hidden'); document.getElementById('verify-div').classList.remove('hidden'); });
+        .then(() => { 
+            alert("আপনার জিমেইলে কোড পাঠানো হয়েছে। " + generatedCode); 
+            document.getElementById('sign-inputs').classList.add('hidden'); 
+            document.getElementById('verify-div').classList.remove('hidden'); 
+        }, 
+        (err) => { 
+            alert("মেইল পাঠানো সম্ভব হয়নি। কোড: " + generatedCode); 
+            document.getElementById('sign-inputs').classList.add('hidden'); 
+            document.getElementById('verify-div').classList.remove('hidden'); 
+        });
     }
 
     function doLogin() {
         const u = document.getElementById('login-user').value.toLowerCase().trim();
         const p = document.getElementById('login-pass').value;
         const found = users.find(x => x.user === u && x.pass === p);
-        if(found) { document.getElementById('display-name').innerText = found.name; showPage('page-exam'); } else alert("ভুল তথ্য!");
+        if(found) { document.getElementById('display-name').innerText = found.name; showPage('page-exam'); } 
+        else alert("ভুল তথ্য!");
     }
 
     function verifyAndFinish() {
@@ -212,7 +220,8 @@
     function doRecover() {
         const email = document.getElementById('recover-email').value.toLowerCase().trim();
         const found = users.find(x => x.user === email);
-        if(found) alert("আপনার পাসওয়ার্ড: " + found.pass); else alert("ইমেইল পাওয়া যায়নি!");
+        if(found) alert("আপনার পাসওয়ার্ড: " + found.pass); 
+        else alert("ইমেইল পাওয়া যায়নি!");
     }
 
     function checkAdminAccess() {
@@ -263,18 +272,18 @@
         });
 
         const timeSpentSeconds = examDuration - timeLeft;
-        const elapsedMins = Math.max(timeSpentSeconds / 60, 0.01);
+        // মোট সময় দিয়ে ভাগ (৫ মিনিট হলে ৫ দিয়ে, ১০ হলে ১০ দিয়ে)
+        const totalMins = examDuration / 60; 
         
-        // ৫ স্টক = ১ শব্দ হিসেবে WPM গণনা
-        const wpm = ((inp.length / 5) / elapsedMins).toFixed(2);
+        const wpm = ((inp.length / 5) / totalMins).toFixed(2);
         const accuracy = inp.length > 0 ? Math.round((correctChars / inp.length) * 100) : 0;
         const errorRate = 100 - accuracy;
 
-        // ভাষা শনাক্তকরণ (বাংলা কি না)
+        // প্যাসেজ অনুযায়ী ভাষা শনাক্তকরণ
         const isBangla = /[\u0980-\u09FF]/.test(passage);
         document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
 
-        // পাস/ফেল শর্ত: WPM টার্গেট পূরণ এবং ভুল ৫% বা তার কম
+        // পাস/ফেল শর্ত: WPM টার্গেট পূরণ এবং ভুল ৫% বা তার কম হতে হবে
         const statusTag = document.getElementById('r-status');
         if(parseFloat(wpm) >= minWPM && errorRate <= 5) {
             statusTag.innerText = "PASS";
