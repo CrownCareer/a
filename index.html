@@ -33,6 +33,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         .error-highlight { background-color: #ffcccc; color: #cc0000; text-decoration: underline; }
+        
+        /* Expiry Input Style */
+        .expiry-edit { width: 130px !important; padding: 5px !important; margin: 0 !important; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -144,8 +147,9 @@
             <textarea id="adm-text" style="height: 100px; width:100%; border:1px solid #ddd;"></textarea><br>
             <button class="btn-main" style="width: auto;" onclick="saveAdminSettings()">Save All Settings</button>
         </div>
+        <h4 style="margin-top:20px;">ইউজার ম্যানেজমেন্ট:</h4>
         <table>
-            <thead><tr><th>নাম</th><th>ইউজার</th><th>পাসওয়ার্ড</th><th>মেয়াদ</th><th>স্ট্যাটাস</th></tr></thead>
+            <thead><tr><th>নাম</th><th>ইউজার</th><th>পাসওয়ার্ড</th><th>মেয়াদ (পরিবর্তন করুন)</th><th>স্ট্যাটাস</th></tr></thead>
             <tbody id="adm-table"></tbody>
         </table>
         <button class="btn-main" style="background:#666; margin-top:20px; width:auto" onclick="location.reload()">Logout Admin</button>
@@ -156,7 +160,7 @@
     (function() { emailjs.init("YOUR_PUBLIC_KEY"); })();
 
     let users = JSON.parse(localStorage.getItem('bcc_final_users')) || [];
-    let passage = localStorage.getItem('bcc_final_text') || "প্যাসেজ এখানে যুক্ত করুন।";
+    let passage = localStorage.getItem('bcc_final_text') || "The quick brown fox jumps over the lazy dog.";
     let examDuration = parseInt(localStorage.getItem('bcc_exam_time')) || 300; 
     let minWPM = parseInt(localStorage.getItem('bcc_min_wpm')) || 20;
     
@@ -196,6 +200,8 @@
         const p = document.getElementById('login-pass').value;
         const found = users.find(x => x.user === u && x.pass === p);
         if(found) { 
+            // মেয়াদ চেক
+            if(new Date().getTime() > found.expiry) return alert("আপনার অ্যাকাউন্টের মেয়াদ শেষ হয়েছে! এডমিনের সাথে যোগাযোগ করুন।");
             document.getElementById('display-name').innerText = found.name; 
             document.getElementById('t-input').value = ""; 
             showPage('page-exam'); 
@@ -230,10 +236,26 @@
     function renderAdminTable() {
         const tbody = document.getElementById('adm-table');
         tbody.innerHTML = "";
-        users.forEach(u => {
+        users.forEach((u, index) => {
             const status = new Date().getTime() > u.expiry ? "<span style='color:red'>Expired</span>" : "<span style='color:green'>Active</span>";
-            tbody.innerHTML += `<tr><td>${u.name}</td><td>${u.user}</td><td>${u.pass}</td><td>${new Date(u.expiry).toLocaleDateString()}</td><td>${status}</td></tr>`;
+            const dateStr = new Date(u.expiry).toISOString().split('T')[0];
+            
+            tbody.innerHTML += `<tr>
+                <td>${u.name}</td>
+                <td>${u.user}</td>
+                <td>${u.pass}</td>
+                <td><input type="date" value="${dateStr}" class="expiry-edit" onchange="updateExpiry(${index}, this.value)"></td>
+                <td>${status}</td>
+            </tr>`;
         });
+    }
+
+    function updateExpiry(index, newVal) {
+        if(newVal) {
+            users[index].expiry = new Date(newVal).getTime();
+            localStorage.setItem('bcc_final_users', JSON.stringify(users));
+            renderAdminTable(); // রিফ্রেশ টেবিল
+        }
     }
 
     function startCount() {
@@ -252,7 +274,6 @@
         const inpBox = document.getElementById('t-input');
         const rawInput = inpBox.value;
         
-        // ১. বাংলা অক্ষরের সমাধান (Normalization)
         const normalizedInp = rawInput.normalize('NFC');
         const normalizedPassage = passage.normalize('NFC');
 
@@ -271,18 +292,16 @@
             }
         });
 
-        // ২. ৫ মিনিট (বা মোট সময়) দিয়ে WPM ভাগ হবে
         const timeSpentSeconds = examDuration - timeLeft;
         const totalMins = examDuration / 60; 
         
         const wpm = ((rawInput.length / 5) / totalMins).toFixed(2);
         const accuracy = rawInput.length > 0 ? (correctChars / rawInput.length) * 100 : 0;
-        const errorRate = (100 - accuracy).toFixed(2); // ৩. নিখুঁত ভুলের হার
+        const errorRate = (100 - accuracy).toFixed(2);
 
         const isBangla = /[\u0980-\u09FF]/.test(passage);
         document.getElementById('r-lang').innerText = isBangla ? "Bangla" : "English";
 
-        // ৪. পাস/ফেল লজিক (WPM এবং ৫.০০% এর বেশি ভুল হলে ফেল)
         const statusTag = document.getElementById('r-status');
         if(parseFloat(wpm) >= minWPM && parseFloat(errorRate) <= 5.00) {
             statusTag.innerText = "PASS";
@@ -292,7 +311,6 @@
             statusTag.style.color = "var(--red)";
         }
 
-        // ফলাফল বক্সে পাঠানো
         document.getElementById('r-total-time-label').innerText = (examDuration/60) + " মিনিট";
         document.getElementById('r-date').innerText = new Date().toLocaleDateString();
         document.getElementById('r-time-taken').innerText = `${Math.floor(timeSpentSeconds/60)}:${(timeSpentSeconds%60).toString().padStart(2,'0')}`;
@@ -309,7 +327,7 @@
     }
 
     function resetForNewExam() {
-        document.getElementById('t-input').value = ""; // ইনপুট বক্স পরিষ্কার করা
+        document.getElementById('t-input').value = ""; 
         location.reload();
     }
 
